@@ -5,6 +5,7 @@ const mailer = require('../utils/mailer');
 // UPLOADING TO AWS S3
 const multer  = require('multer');
 const upload = multer({ dest: 'uploads/' });
+
 const Upload = require('s3-uploader');
 
 const client = new Upload(process.env.S3_BUCKET, {
@@ -73,33 +74,25 @@ app.post('/pets', upload.single('avatar'), (req, res, next) => {
     });
   });
 
-  // SEARCH PET
-  app.get('/search', (req, res) => {
-    const term = new RegExp(req.query.term, 'i')
+// SEARCH
+app.get('/search', function (req, res) {
+  Pet
+      .find(
+          { $text : { $search : req.query.term } },
+          { score : { $meta: "textScore" } }
+      )
+      .sort({ score : { $meta : 'textScore' } })
+      .limit(20)
+      .exec(function(err, pets) {
+        if (err) { return res.status(400).send(err) }
 
-    const page = req.query.page || 1 
-    Pet.paginate(
-      {
-        // take existing $or query and put it as that query parameter for paginate
-        $or: [
-          {'name': term}, 
-          {'spaces': term}
-        ]
-      }, 
-      {page: page}).then((results) => {
-
-        // pass original term (not RegExp) to populate correct URL w/ string
-        res.render('pets-index', { pets: results.docs, pagesCount: results.pages, 
-                                    currentPage: page, term: req.query.term });
+        if (req.header('Content-Type') == 'application/json') {
+          return res.json({ pets: pets });
+        } else {
+          return res.render('pets-index', { pets: pets, term: req.query.term });
+        }
       });
-
-    // Pet.find({$or:[
-    //   {'name': term},
-    //   {'species': term}
-    // ]}).exec((err, pets) => {
-    //   res.render('pets-index', { pets: pets });
-    // })
-  });
+});
 
   // EDIT PET
   app.get('/pets/:id/edit', (req, res) => {
