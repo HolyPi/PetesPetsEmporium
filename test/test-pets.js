@@ -46,6 +46,18 @@ describe('Pets', ()  => {
           done();
         });
   });
+
+  it('should list ALL pets on /pets GET', function(done) {
+    chai.request(server)
+        .get('/')
+        .set('content-type', 'application/json')
+        .end(function(err, res){
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.should.be.a('object');
+          done();
+        });
+  });
   
   // TEST CREATE 
   it('should create a SINGLE pet on /pets POST', (done) => {
@@ -129,3 +141,4 @@ it('should search ALL pets by name on /search GET', (done) => {
     });
   });
 });
+
